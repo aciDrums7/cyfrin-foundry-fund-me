@@ -8,12 +8,18 @@ contract FundMeTest is Test {
     FundMe fundMe;
 
     function setUp() external {
-        vm.startBroadcast();
+        //? us -> FundMeTest -> FundMe
         fundMe = new FundMe();
-        vm.stopBroadcast();
     }
 
     function testMinimumDollarIsFive() public {
         assertEq(fundMe.MINIMUM_USD(), 5e18);
+    }
+
+    function testOwnerIsMsgSenders() public {
+        console.log(fundMe.i_owner());
+        // console.log(msg.sender);
+        console.log(address(this));
+        assertEq(fundMe.i_owner(), address(this));
     }
 }
