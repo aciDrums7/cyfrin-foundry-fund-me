@@ -81,10 +81,7 @@ contract FundMeTest is Test {
         uint256 endingOwnerBalance = fundMe.getOwner().balance;
         uint256 endingFundMeBalance = address(fundMe).balance;
         assertEq(endingFundMeBalance, 0);
-        assertEq(
-            endingOwnerBalance,
-            startingOwnerBalance + startingFundMeBalance
-        );
+        assertEq(endingOwnerBalance, startingOwnerBalance + startingFundMeBalance);
     }
 
     function testWithdrawWithMultipleFunders() public funded {
@@ -112,9 +109,34 @@ contract FundMeTest is Test {
         uint256 endingOwnerBalance = fundMe.getOwner().balance;
         uint256 endingFundMeBalance = address(fundMe).balance;
         assertEq(endingFundMeBalance, 0);
-        assertEq(
-            endingOwnerBalance,
-            startingOwnerBalance + startingFundMeBalance
-        );
+        assertEq(endingOwnerBalance, startingOwnerBalance + startingFundMeBalance);
+    }
+
+    function testWithdrawWithMultipleFundersCheaper() public funded {
+        //1 Arrange
+        //? why uint160? because uint160 and address have the same byte length
+        //! otherwise is thrown 'Explicit type conversion not allowed from "uint256" to "address".solidity(9640)' when calling 'address(uint256)'
+        uint160 numberOfFunders = 10;
+        //? Sometimes address(0) reverts, so better start from 1
+        uint160 startingFunderIndex = 1;
+        for (uint160 i = startingFunderIndex; i < numberOfFunders; i++) {
+            // vm.prank
+            // vm.deal
+            hoax(address(i), STARTING_BALANCE);
+            fundMe.fund{value: SEND_VALUE}();
+            // fund the fundMe
+        }
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        //2 Act
+        vm.prank(fundMe.getOwner());
+        fundMe.cheaperWithdraw();
+
+        //3 Assert
+        uint256 endingOwnerBalance = fundMe.getOwner().balance;
+        uint256 endingFundMeBalance = address(fundMe).balance;
+        assertEq(endingFundMeBalance, 0);
+        assertEq(endingOwnerBalance, startingOwnerBalance + startingFundMeBalance);
     }
 }
