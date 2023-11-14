@@ -2,7 +2,6 @@
   "recommendations": [
     "tintinweb.vscode-ethover",
     "tamasfe.even-better-toml",
-    "yzhang.markdown-all-in-one",
-    "juanblanco.solidity"
+    "yzhang.markdown-all-in-one"
   ]
 }
