@@ -23,10 +23,10 @@ contract FundMeTest is Test {
     }
 
     function testOwnerIsMsgSenders() public {
-        console.log(fundMe.i_owner());
+        console.log(fundMe.getOwner());
         console.log(msg.sender);
         // console.log(address(this));
-        assertEq(fundMe.i_owner(), msg.sender);
+        assertEq(fundMe.getOwner(), msg.sender);
     }
 
     function testPriceFeedVersionIsAccurate() public {
@@ -39,12 +39,75 @@ contract FundMeTest is Test {
         fundMe.fund(); // send 0 value
     }
 
-    function testFundUpdatedFundedDataStructures() public {
-        vm.prank(USER); // The next TX will be sent by USER
-
+    modifier funded() {
+        vm.prank(USER);
         fundMe.fund{value: SEND_VALUE}();
+        _;
+    }
 
+    function testFundUpdatedFundedDataStructures() public funded {
         uint256 amountFunded = fundMe.getAddressToAmountFunded(USER);
         assertEq(amountFunded, SEND_VALUE);
+    }
+
+    function testFundAddsFunderToArrayOfFunders() public funded {
+        address funder = fundMe.getFunder(0);
+        assertEq(funder, USER);
+    }
+
+    function testOnlyOwnerCanWithdraw() public funded {
+        vm.expectRevert();
+        vm.prank(USER);
+        fundMe.withdraw();
+    }
+
+    function testWithdrawWithASingleFunder() public funded {
+        //1 Arrange
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        //2 Act
+        vm.prank(fundMe.getOwner());
+        fundMe.withdraw();
+
+        //3 Assert
+        uint256 endingOwnerBalance = fundMe.getOwner().balance;
+        uint256 endingFundMeBalance = address(fundMe).balance;
+        assertEq(endingFundMeBalance, 0);
+        assertEq(
+            endingOwnerBalance,
+            startingOwnerBalance + startingFundMeBalance
+        );
+    }
+
+    function testWithdrawWithMultipleFunders() public funded {
+        //1 Arrange
+        //? why uint160? because uint160 and address have the same byte length
+        //! otherwise is thrown 'Explicit type conversion not allowed from "uint256" to "address".solidity(9640)' when calling 'address(uint256)'
+        uint160 numberOfFunders = 10;
+        //? Sometimes address(0) reverts, so better start from 1
+        uint160 startingFunderIndex = 1;
+        for (uint160 i = startingFunderIndex; i < numberOfFunders; i++) {
+            // vm.prank
+            // vm.deal
+            hoax(address(i), STARTING_BALANCE);
+            fundMe.fund{value: SEND_VALUE}();
+            // fund the fundMe
+        }
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        //2 Act
+        vm.prank(fundMe.getOwner());
+        fundMe.withdraw();
+
+        //3 Assert
+        uint256 endingOwnerBalance = fundMe.getOwner().balance;
+        uint256 endingFundMeBalance = address(fundMe).balance;
+        assertEq(endingFundMeBalance, 0);
+        assertEq(
+            endingOwnerBalance,
+            startingOwnerBalance + startingFundMeBalance
+        );
     }
 }
