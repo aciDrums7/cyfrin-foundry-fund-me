@@ -11,6 +11,7 @@ contract FundMeTest is Test {
     address USER = makeAddr("user");
     uint256 constant SEND_VALUE = 0.1 ether; // 1e17 Wei
     uint256 constant STARTING_BALANCE = 10 ether;
+    uint256 constant GAS_PRICE = 3;
 
     function setUp() external {
         DeployFundMe deployFundMe = new DeployFundMe();
@@ -67,8 +68,14 @@ contract FundMeTest is Test {
         uint256 startingFundMeBalance = address(fundMe).balance;
 
         //2 Act
+        uint256 gasStart = gasleft(); // Built-in Solidity function -> tells about how much gas is left in the TX call
+        //! Anvil defaults the gas price to 0! With this cheatcode we can change its value to wathever we want
+        vm.txGasPrice(GAS_PRICE);
         vm.prank(fundMe.getOwner());
         fundMe.withdraw();
+        uint256 gasEnd = gasleft();
+        uint256 gasUsed = (gasStart - gasEnd) * tx.gasprice;
+        console.log(gasUsed);
 
         //3 Assert
         uint256 endingOwnerBalance = fundMe.getOwner().balance;
